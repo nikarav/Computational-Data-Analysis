@@ -1,11 +1,15 @@
 import os
+import sys
 from random import random
+from tabnanny import verbose
 import numpy as np
 import pandas as pd
 
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold, GridSearchCV
 import sklearn.preprocessing as preproc
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import ElasticNet
+from sklearn.neighbors import KNeighborsRegressor
 import dateutil.easter
 
 import matplotlib.pyplot as plt
@@ -52,6 +56,9 @@ def prepare_data(df, attributes_used, top_cat_dictionary=None):
     attrs.append('Holiday')
 
     df.drop('ScheduleTime', axis=1, inplace=True)
+
+    if top_cat_dictionary is None:
+        return df
 
     for attr in top_cat_dictionary.keys():
         for i in top_cat_dictionary[attr]:
@@ -129,8 +136,43 @@ def rmse(actual, pred):
     return np.sqrt(res.mean())
 
 
-regr = RandomForestRegressor()
-regr.fit(X_train, y_train)
+# regr = RandomForestRegressor()
+# regr.fit(X_train, y_train)
 
-y_hat = regr.predict(X_test)
-rmse(y_test, y_hat)
+# y_hat = regr.predict(X_test)
+# rmse(y_test, y_hat)
+
+# models = []
+
+# grid_param = {
+#     'alpha':[0.00046415888336127773],
+#     'l1_ratio':[np.linspace(0.015, 0.15, 10)],
+# }
+# regr = GridSearchCV(ElasticNet(), grid_param, cv=5, n_jobs=-1, verbose=2)
+# regr.fit(X_train, y_train)
+# models.append(regr.best_estimator_)
+# elastNet  = ElasticNet(alpha = 0.0004641588, l1_ratio=0.03)
+# elastNet.fit(X_train, y_train)
+# y_hat = elastNet.predict(X_test)
+# error = rmse(y_hat, y_test)
+K = 10  # CV Folds
+CV = KFold(n_splits=K)
+
+errors = np.zeros(K)
+estimators = []
+for i, (train_index, test_index) in enumerate(CV.split(X_train, y_train)):
+    X_train_set = X_train[train_index]
+    y_train_set = y_train[train_index]
+    X_test_set = X_train[test_index]
+    y_test_set = y_train[test_index]
+
+    param_grid = {
+        'l1_ratio': [0.01, 0.05, 0.1],
+        'alpha': [0.0004, 0.0005, 0.001]
+    }
+
+    est = GridSearchCV(ElasticNet(), param_grid=param_grid, cv=10)
+    est.fit(X_train_set, y_train_set)
+    print(i)
+    estimators.append(est.best_estimator_)
+    errors[i] = rmse(y_test_set, est.best_estimator_.predict(X_test_set))
