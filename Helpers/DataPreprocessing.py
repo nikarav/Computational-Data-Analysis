@@ -5,7 +5,7 @@ import pandas as pd
 
 class AtemporalEncodingFeaturesTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, df, attributes_used, categorical_attributes_used,  top_value_counts, easter_days_off=3, christmas_weeks_numbers=[52, 53, 1]):
-        self.df = df.copy(deep=True)
+        self.df = df[attributes_used].copy(deep=True)
         self.attributes_used = attributes_used.copy()
         self.categorical_attributes_used = categorical_attributes_used.copy()
         self.top_value_counts = top_value_counts
