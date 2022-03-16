@@ -12,7 +12,6 @@ import numpy as np
 from tabnanny import verbose
 from random import random
 from sklearn.pipeline import Pipeline
-from sklearn.base import BaseEstimator, TransformerMixin
 import os
 import sys
 script_path = os.path.abspath('')
