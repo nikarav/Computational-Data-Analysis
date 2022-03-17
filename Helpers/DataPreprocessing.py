@@ -13,10 +13,11 @@ class AtemporalEncodingFeaturesTransformer(BaseEstimator, TransformerMixin):
         self.top_value_counts = top_value_counts
         self.easter_days_off = easter_days_off
         self.christmas_weeks_numbers = christmas_weeks_numbers
-        self.cat_dict = {}
+        # self.cat_dict = {}
+        self.cat_dict = self.__get_categorical_encoding()
 
     def fit(self, X, y=None):
-        self.cat_dict = self.__get_categorical_encoding()
+        # self.cat_dict = self.__get_categorical_encoding()
         return self
 
     def transform(self, X):
@@ -89,13 +90,85 @@ class AtemporalEncodingFeaturesTransformer(BaseEstimator, TransformerMixin):
 
 
 class AtemporalDataTreeTransformation(BaseEstimator, TransformerMixin):
-    def __init__(self, df, horizon, embeddings):
-        self.df = df.copy(deep=True)
-        self.embeddings = embeddings
-        self.horizon = horizon
+    def __init__(self, df, attributes_used, categorical_attributes_used, top=10):
+        self.df = df[attributes_used].copy(deep=True)
+        self.attributes_used = attributes_used
+        self.top = top
+        self.categorical_attributes_used = categorical_attributes_used
+        self.df = self.__fix_flight_type(self.df)
+        self.top_cat_dict = {}
+        self.__create_top_dict()
 
     def fit(self, X, y=None):
         return self
 
-    def transform(self):
-        pass
+    def transform(self, df):
+        df = df[self.attributes_used].copy()
+        df = self.__fix_flight_type(df)
+        df = self.__prepare_datetime_data(df)
+        df = self.__categorical_data_transform(df)
+        return df
+
+    def __fix_flight_type(self, df):
+        df = df.copy()
+        # G is a passenger flight. Lectures
+        df['FlightType'].replace('G', 'J', inplace=True)
+        # O is a charter type. Lectures
+        df['FlightType'].replace('O', 'C', inplace=True)
+        return df
+
+    def __get_top_values_df(self, df, column, dictionary_of_cat_values, replacement_name='Other'):
+        df = df[column].copy(deep=True)
+        top_values = dictionary_of_cat_values[column]
+        top = self.top
+        if len(top_values) < top:
+            top = len(top_values)
+        df[df.isin(top_values[:top]) == False] = replacement_name
+        return pd.DataFrame(data=df, columns=[column])
+
+    def __create_top_dict(self):
+        for attr in self.categorical_attributes_used:
+            self.top_cat_dict[attr] = np.asarray(
+                self.df[attr].value_counts().index)
+
+    def __categorical_data_transform(self, df):
+        df = df.copy()
+        for attr in self.categorical_attributes_used:
+            temp_df = self.__get_top_values_df(df, attr, self.top_cat_dict)
+            df.drop([attr], axis=1, inplace=True)
+            df = pd.concat([df, temp_df], axis=1)
+        return df
+
+    def __prepare_datetime_data(self, df):
+        df = df.copy()
+        if 'ScheduleTime' not in self.attributes_used:
+            print('ScheduleTime not in attributes list')
+            return
+        df['Year'] = df['ScheduleTime'].dt.isocalendar().year
+        df['WeekNumber'] = df['ScheduleTime'].dt.isocalendar().week
+        df['Day'] = df['ScheduleTime'].dt.isocalendar().day
+        df['Hour'] = df['ScheduleTime'].dt.hour
+        df['Holiday'] = self.__get_holidays()
+        df.drop('ScheduleTime', axis=1, inplace=True)
+
+        return df
+
+    def __get_holidays(self, easter_days_off=3, christmas_weeks_numbers=[51, 52, 53]):
+        # Easter
+        import dateutil.easter
+
+        years = np.asarray(self.df.ScheduleTime.dt.year)
+        easter_index = [dateutil.easter.easter(year) for year in years]
+        easter_index = np.array(np.abs(
+            easter_index - self.df.ScheduleTime.dt.date).dt.days <= easter_days_off)
+
+        # Christmas - New Year's Eve
+        weeks = np.asarray(self.df.ScheduleTime.dt.isocalendar().week)
+        christmas_index = np.array(
+            [weeks[i] in christmas_weeks_numbers for i in range(self.df.shape[0])])
+
+        # merge the indixes
+        indx = christmas_index | easter_index
+        temp_df = {'Holiday': indx.astype(int)}
+        temp_df = pd.DataFrame(temp_df)
+        return indx.astype(int)
