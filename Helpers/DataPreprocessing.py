@@ -7,24 +7,35 @@ class AtemporalEncodingFeaturesTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, df, attributes_used, categorical_attributes_used,  top_value_counts, easter_days_off=3, christmas_weeks_numbers=[52, 53, 1]):
         self.df = df[attributes_used].copy(deep=True)
         self.attributes_used = attributes_used.copy()
+        if 'FlightType' in self.attributes_used:
+            self.__fix_flight_type()
         self.categorical_attributes_used = categorical_attributes_used.copy()
         self.top_value_counts = top_value_counts
         self.easter_days_off = easter_days_off
         self.christmas_weeks_numbers = christmas_weeks_numbers
+        self.cat_dict = {}
 
     def fit(self, X, y=None):
+        self.cat_dict = self.__get_categorical_encoding()
         return self
 
     def transform(self, X):
-        cat_dict = self.__get_categorical_encoding()
-        if 'FlightType' in cat_dict.keys():
-            cat_dict['FlightType'] = cat_dict['FlightType'][:-2]
-        X = self.__prepare_data(cat_dict)
+        if 'FlightType' in self.attributes_used:
+            self.__fix_flight_type()
+        if 'FlightType' in self.cat_dict.keys():
+            self.cat_dict['FlightType'] = self.cat_dict['FlightType'][0]
+        X = self.__prepare_data(self.cat_dict)
         if 'LoadFactor' not in self.df.columns:
             return X
         y = pd.DataFrame(self.df['LoadFactor'])
         data = pd.concat((X, y), axis=1)
         return data
+
+    def __fix_flight_type(self):
+        # G is a passenger flight. Lectures
+        self.df['FlightType'].replace('G', 'J', inplace=True)
+        # O is a charter type. Lectures
+        self.df['FlightType'].replace('O', 'C', inplace=True)
 
     def __get_categorical_encoding(self):
         cat_dict = {}
@@ -75,3 +86,16 @@ class AtemporalEncodingFeaturesTransformer(BaseEstimator, TransformerMixin):
                 self.df[feature_name] = (self.df[attr] == i).astype(int)
             self.df.drop(attr, axis=1, inplace=True)
         return self.df  # Not the most useful
+
+
+class AtemporalDataTreeTransformation(BaseEstimator, TransformerMixin):
+    def __init__(self, df, horizon, embeddings):
+        self.df = df.copy(deep=True)
+        self.embeddings = embeddings
+        self.horizon = horizon
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self):
+        pass

@@ -1,4 +1,5 @@
 import Helpers.DataPreprocessing as hdp
+import Helpers.ErrorMetrics
 from importlib.resources import path
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -28,10 +29,10 @@ raw_data.loc[:, ('AircraftType')] = raw_data.loc[:,
                                                  ('AircraftType')].astype(str)
 
 raw_attributes_used = ['ScheduleTime', "Airline", 'Destination',
-                       'AircraftType', 'FlightType', 'Sector']
+                       'FlightType', 'Sector', 'SeatCapacity']
 
 raw_categorical_attributes_used = [
-    'Airline', 'Destination', 'AircraftType', 'FlightType', 'Sector']
+    'Airline', 'Destination', 'FlightType', 'Sector']
 
 
 num_pipeline = Pipeline([
@@ -40,4 +41,10 @@ num_pipeline = Pipeline([
 ])
 
 data = num_pipeline.fit_transform(raw_data)
-X, y = data.values[:, :-1], data.values[:, -1]
+# X, y = data.values[:, :-1], data.values[:, -1]
+X_df = data.drop(['SeatCapacity'], axis=1)
+y_df = pd.DataFrame(raw_data.LoadFactor)
+
+X = X_df.values
+y = y_df.values
+seat_capacities = data.SeatCapacity.values
