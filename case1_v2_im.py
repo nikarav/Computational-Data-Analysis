@@ -1,8 +1,10 @@
+from pydoc import Helper
 from sklearn.tree import DecisionTreeRegressor
 from random import random
 from tabnanny import verbose
 import numpy as np
 import pandas as pd
+from scipy import stats
 from sklearn.model_selection import train_test_split, KFold, GridSearchCV, TimeSeriesSplit
 import sklearn.preprocessing as preproc
 from sklearn.ensemble import RandomForestRegressor
@@ -48,9 +50,40 @@ X_transformed_df = transformer.transform(input_data)
 # Be careful for actual passengers = 0
 X_df = X_transformed_df[raw_data.LoadFactor != 0]
 load_factor = raw_data[raw_data.LoadFactor != 0].LoadFactor
-seat_capacity = raw_data[raw_data.LoadFactor != 0].SeatCapacity
-y_df = pd.DataFrame(data=load_factor.values *
-                    seat_capacity.values, columns=['Number of Passengers'])
+# seat_capacity = raw_data[raw_data.LoadFactor != 0].SeatCapacity
+# y_df = pd.DataFrame(data=load_factor.values *
+#                     seat_capacity.values, columns=['Number of Passengers'])
+# y = y_df.values.ravel()
+
 
 X = X_df.values
-y = y_df.values.ravel()
+
+y = load_factor.values.ravel()
+
+n, p = X.shape
+
+# K_outer = 10
+# K_inner = 5
+# CV_outer = KFold(n_splits=K_outer, shuffle=False)
+
+# errors = np.zeros(K_outer)
+# errors_rmse = np.zeros(K_outer)
+# best_estimators = []
+# for i, (train_set, test_set) in enumerate(CV_outer.split(X, y)):
+#     X_train = X[train_set]
+#     y_train = y[train_set]
+#     X_test = X[test_set]
+#     y_test = y[test_set]
+#     param_grid = {
+#         'ccp_alpha': np.linspace(0.4, 0.6, 10),
+#         'max_depth': [7, 8, 9],
+#         'min_samples_leaf': [14, 15, 16],
+#     }
+#     regr = GridSearchCV(DecisionTreeRegressor(),
+#                         param_grid=param_grid, cv=K_inner, n_jobs=-1, verbose=2)
+#     regr.fit(X_train, y_train)
+#     best_estimators.append(regr.best_estimator_)
+#     y_hat = regr.predict(X_test)
+#     error = Helpers.ErrorMetrics.accuracy_per_flight(y_test, y_hat)
+#     errors[i] = (np.abs(error)).mean()
+#     errors_rmse[i] = Helpers.ErrorMetrics.rmse(y_test, y_hat)
