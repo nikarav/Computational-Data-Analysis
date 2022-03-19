@@ -300,28 +300,11 @@ class SamplingTransformer(BaseEstimator, TransformerMixin):
                 passengers_numbers[j:j+j1] = np.asarray(
                     estimates_vector).ravel()[i]
                 j += j1
-
-            # week_nums = np.asarray(df_transf['WeekNumber'].unique())
-            # for week in week_nums:
-            #     week_df = df_transf[df_transf['WeekNumber'] == week]
-            #     days = np.asarray(week_df.Day.unique())
-            #     for day in days:
-            #         days_df = week_df[week_df['Day'] == day]
-            #         hours = np.asarray(days_df.Hour.unique())
-            #         for hour in hours:
-            #             hours_df = days_df[days_df['Hour'] == hour]
-            #             # otherwise ravel()
-            #             print(f'indexes[i]:\n{indexes[i]}')
-            #             print(f'len(indexes[i]):\n{len(indexes[i])}')
-            #             j_new = len(indexes[i])
-            #             passengers_numbers[j:j_new] = estimates_vector[i]
-            #             j += j_new
-            #             i += 1
             seat_capacities = np.asarray(df['SeatCapacity'])
             load_factors = np.array([passengers_numbers/seat_capacities]).T
             load_factors = pd.DataFrame(
                 data=load_factors, columns=['LoadFactor'])
-            #load_factors = load_factors.set_index(index)
+            load_factors = load_factors.set_index(index)
             schedule = pd.concat([df, load_factors], axis=1)
-            #schedule = schedule.sort_index()
-            return passengers_numbers
+            schedule = schedule.sort_index()
+            return schedule
