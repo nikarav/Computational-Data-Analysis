@@ -67,7 +67,9 @@ class DataTransformer(BaseEstimator, TransformerMixin):
             df['Holiday'] = self.__get_holidays(df)
             df.drop('ScheduleTime', axis=1, inplace=True)
             return df
-
+    
+    # 1) Gregorian calendar
+    # 2) Christmas Holiday
     def __get_holidays(self, df, easter_days_off=3, christmas_weeks_numbers=[51, 52, 53]):
         # Easter
         import dateutil.easter
