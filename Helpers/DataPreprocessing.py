@@ -60,7 +60,7 @@ class DataTransformer(BaseEstimator, TransformerMixin):
     def __prepare_datetime_data(self, df):
         df = df.copy()
         if 'ScheduleTime' in self.attributes:
-            df['Year'] = df['ScheduleTime'].dt.year
+            df['Year'] = df['ScheduleTime'].dt.isocalendar().year
             df['WeekNumber'] = df['ScheduleTime'].dt.isocalendar().week
             df['Day'] = df['ScheduleTime'].dt.isocalendar().day
             df['Hour'] = df['ScheduleTime'].dt.hour

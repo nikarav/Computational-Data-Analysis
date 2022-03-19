@@ -1,4 +1,5 @@
 from pydoc import Helper
+import sched
 from sklearn.tree import DecisionTreeRegressor
 from random import random
 from tabnanny import verbose
@@ -15,6 +16,8 @@ import seaborn as sns
 from importlib.resources import path
 import Helpers.ErrorMetrics
 import Helpers.DataPreprocessing as hdp
+import Helpers.SamplingPreprocessing as spreproc
+
 import os
 import sys
 script_path = os.path.abspath('')
@@ -38,6 +41,7 @@ raw_attributes_used = [
     'Destination',
     'FlightType',
     'Sector',
+    # 'SeatCapacity',
 ]
 
 
@@ -62,6 +66,27 @@ y = load_factor.values.ravel()
 
 n, p = X.shape
 
+# import im_models
+
+# mod_regr = im_models.PredictionModels(cv_outer=5, cv_inner=5)
+# mod_regr.fit(X,y)
+
+# y_hat = mod_regr.predict(X)
+
+dataset = raw_data.loc[raw_data.LoadFactor > 0]
+training_length = int(2/3*dataset.shape[0])
+train_dataset = dataset[0:training_length]
+test_dataset = dataset[training_length:]
+y_test = test_dataset[["LoadFactor"]]
+X_test = test_dataset.drop(['LoadFactor'], axis=1)
+
+
+trnsf = spreproc.SamplingTransformer(sample_by='hours')
+X, y = trnsf.fit(train_dataset)
+
+X2, y2 = trnsf.fit(test_dataset)
+
+schedule = trnsf.from_sampled_to_schedule_format(y2[-300:], X_test[-300:])
 # K_outer = 10
 # K_inner = 5
 # CV_outer = KFold(n_splits=K_outer, shuffle=False)
