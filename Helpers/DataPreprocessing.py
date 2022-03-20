@@ -4,14 +4,17 @@ import pandas as pd
 
 
 class DataTransformer(BaseEstimator, TransformerMixin):
-    def __init__(self, top=10, dummy_encode=True):
-        self.top = top
+    def __init__(self, top, dummy_encode=True):
+        self.top=top
         self.dummy_encode = dummy_encode
         self.all_cat_columns_in_raw_data_hardcoded = ['Airline',
                                                       'Destination',
                                                       'AircraftType',  # if actually used remember to change all rows to string outside
                                                       'FlightType',
-                                                      'Sector']
+                                                      'Sector'
+                                                      ]
+        
+                                    
 
     def fit(self, X, y=None):
         self.df = X.copy()
@@ -23,12 +26,14 @@ class DataTransformer(BaseEstimator, TransformerMixin):
         self.cat_top_dict = {}
         self.__populate_cat_top_dict()
 
-    def transform(self, X):
+    def transform(self, X, columns):
         df = X.copy()
         df = df.sort_values(by=['ScheduleTime'])
         df = self.__fix_flight_type(df)
         df = self.__prepare_datetime_data(df)
         df = self.__categorical_data_transform(df)
+        # add columns (For instance add SeatCapacity)
+        #df = self.__add_Columns_To_df(X, df, columns)
         return df
 
     def __populate_cat_attribs_array(self):
@@ -39,12 +44,13 @@ class DataTransformer(BaseEstimator, TransformerMixin):
 
     def __populate_cat_top_dict(self):
         for attr in self.categorical_attributes_used:
-            top = self.top
-            attr_len = len(self.df[attr].unique())
-            if attr_len < top:
-                top = attr_len
-            self.cat_top_dict[attr] = np.asarray(
-                self.df[attr].value_counts()[:top].index)
+            if attr in self.top:
+                top = self.top[attr]
+                attr_len = len(self.df[attr].unique())
+                if attr_len < top:
+                    top = attr_len
+                self.cat_top_dict[attr] = np.asarray(
+                    self.df[attr].value_counts()[:top].index)
 
     def __fix_flight_type(self, df):
         df = df.copy()
@@ -102,7 +108,7 @@ class DataTransformer(BaseEstimator, TransformerMixin):
     def __get_top_values_df(self, df, column, replacement_name='Other'):
         df = df[column].copy()
         top_values = self.cat_top_dict[column]
-        top = self.top
+        top = self.top[column]
         if len(top_values) < top:
             top = len(top_values)
         df[df.isin(top_values[:top]) == False] = replacement_name
@@ -116,4 +122,22 @@ class DataTransformer(BaseEstimator, TransformerMixin):
                 end_name = col[-5:].lower()
                 if end_name == "other":
                     df.drop([col], axis=1, inplace=True)
+        return df
+    
+    def __add_Columns_To_df(self, X, df, columns):
+        """
+        Concatenate the columns of X to df.
+
+        ====
+        X: Dataframe that contains the columns
+        df: The Dataframe in which we will concatenate the specified columns
+        columns: A list of columns from X to be concatenated to df
+
+        ===
+        returns
+        df: the initial df after concatenation
+        """
+
+        for column in columns:
+            df = pd.concat([df, X[column]], axis=1)
         return df
