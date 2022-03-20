@@ -17,9 +17,49 @@ from importlib.resources import path
 import Helpers.ErrorMetrics
 import Helpers.DataPreprocessing as hdp
 import Helpers.SamplingPreprocessing as spreproc
-
 import os
 import sys
+import folium
+import imageio
+from tqdm import tqdm_notebook
+from folium.plugins import MarkerCluster
+import imageio
+import mapclassify as mc
+import statsmodels.api as sm
+from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.arima_model import ARIMA
+import scipy
+from itertools import product
+import seaborn as sns
+from statsmodels.graphics.tsaplots import plot_pacf
+from statsmodels.graphics.tsaplots import plot_acf
+from statsmodels.tsa.arima_process import ArmaProcess
+from statsmodels.stats.diagnostic import acorr_ljungbox
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.stattools import pacf
+from statsmodels.tsa.stattools import acf
+
+plt.style.use('ggplot')
+plt.rcParams['font.family'] = 'sans-serif' 
+plt.rcParams['font.serif'] = 'Ubuntu' 
+plt.rcParams['font.monospace'] = 'Ubuntu Mono' 
+plt.rcParams['font.size'] = 14 
+plt.rcParams['axes.labelsize'] = 12 
+plt.rcParams['axes.labelweight'] = 'bold' 
+plt.rcParams['axes.titlesize'] = 12 
+plt.rcParams['xtick.labelsize'] = 12 
+plt.rcParams['ytick.labelsize'] = 12 
+plt.rcParams['legend.fontsize'] = 12 
+plt.rcParams['figure.titlesize'] = 12 
+plt.rcParams['image.cmap'] = 'jet' 
+plt.rcParams['image.interpolation'] = 'none' 
+plt.rcParams['figure.figsize'] = (12, 10) 
+plt.rcParams['axes.grid']=True
+plt.rcParams['lines.linewidth'] = 2 
+plt.rcParams['lines.markersize'] = 8
+colors = ['xkcd:pale orange', 'xkcd:sea blue', 'xkcd:pale red', 'xkcd:sage green', 'xkcd:terra cotta', 'xkcd:dull purple', 'xkcd:teal', 'xkcd: goldenrod', 'xkcd:cadet blue',
+'xkcd:scarlet']
 script_path = os.path.abspath('')
 sys.path.append(script_path)
 sys.path.append(os.path.join(script_path, 'Helpers'))
@@ -41,15 +81,23 @@ raw_attributes_used = [
     'Destination',
     'FlightType',
     'Sector',
-    # 'SeatCapacity',
+    'SeatCapacity'
 ]
 
+top = { "Airline": 100,
+        'Destination': 100,
+        'FlightType': 10,
+        'Sector': 10
+        }
+
+columns = ['SeatCapacity']
 
 input_data = raw_data[raw_attributes_used]
-transformer = hdp.DataTransformer(top=3, dummy_encode=True)
+transformer = hdp.DataTransformer(top=top, dummy_encode=True)
 transformer.fit(input_data)
 
-X_transformed_df = transformer.transform(input_data)
+X_transformed_df = transformer.transform(input_data, columns)
+
 
 # Be careful for actual passengers = 0
 X_df = X_transformed_df[raw_data.LoadFactor != 0]
@@ -68,7 +116,7 @@ n, p = X.shape
 
 # import im_models
 
-# mod_regr = im_models.PredictionModels(cv_outer=5, cv_inner=5)
+# mod_regr = im_models.PredictionModels(cv_outer=10, cv_inner=5)
 # mod_regr.fit(X,y)
 
 # y_hat = mod_regr.predict(X)
@@ -82,11 +130,20 @@ X_test = test_dataset.drop(['LoadFactor'], axis=1)
 
 
 trnsf = spreproc.SamplingTransformer(sample_by='hours')
-X, y = trnsf.fit(train_dataset)
+X, _, y = trnsf.fit(train_dataset)
 
-X2, y2 = trnsf.fit(test_dataset)
+#X2, _, y2 = trnsf.fit(test_dataset)
 
-schedule = trnsf.from_sampled_to_schedule_format(y2[-300:], X_test[-300:])
+#schedule = trnsf.from_sampled_to_schedule_format(y2[-300:], X_test[-300:])
+
+
+
+#=================KNN - No Shuffle===================#
+
+
+
+
+
 # K_outer = 10
 # K_inner = 5
 # CV_outer = KFold(n_splits=K_outer, shuffle=False)
