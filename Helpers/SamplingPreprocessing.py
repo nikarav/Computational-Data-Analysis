@@ -290,7 +290,7 @@ class SamplingTransformer(BaseEstimator, TransformerMixin):
         df = X_schedule_format.copy(deep=True)
         df = df.sort_values(by='ScheduleTime')
         index = df.index
-        df_transf, indexes = self.transform(df)
+        _, indexes = self.transform(df)
         passengers_numbers = np.zeros(X_schedule_format.shape[0])
         i = 0
         j = 0
