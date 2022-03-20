@@ -63,6 +63,7 @@ colors = ['xkcd:pale orange', 'xkcd:sea blue', 'xkcd:pale red', 'xkcd:sage green
 script_path = os.path.abspath('')
 sys.path.append(script_path)
 sys.path.append(os.path.join(script_path, 'Helpers'))
+sys.path.append(os.path.join(script_path, 'scoring'))
 
 sns.set()
 
@@ -75,7 +76,7 @@ raw_data = pd.read_excel(file_name)
 raw_data.loc[:, ('AircraftType')] = raw_data.loc[:,
                                                  ('AircraftType')].astype(str)
 
-raw_attributes_used = [
+features = [
     'ScheduleTime',
     "Airline",
     'Destination',
@@ -92,7 +93,7 @@ top = { "Airline": 100,
 
 columns = ['SeatCapacity']
 
-input_data = raw_data[raw_attributes_used]
+input_data = raw_data[features]
 transformer = hdp.DataTransformer(top=top, dummy_encode=True)
 transformer.fit(input_data)
 
@@ -100,12 +101,14 @@ X_transformed_df = transformer.transform(input_data, columns)
 
 
 # Be careful for actual passengers = 0
-X_df = X_transformed_df[raw_data.LoadFactor != 0]
-load_factor = raw_data[raw_data.LoadFactor != 0].LoadFactor
-# seat_capacity = raw_data[raw_data.LoadFactor != 0].SeatCapacity
-# y_df = pd.DataFrame(data=load_factor.values *
-#                     seat_capacity.values, columns=['Number of Passengers'])
-# y = y_df.values.ravel()
+X_df = X_transformed_df.loc[raw_data.LoadFactor > 0]
+load_factor = raw_data.loc[raw_data.LoadFactor > 0]
+
+# This is the prediction attribute (LoadFactor)
+load_factor = load_factor['LoadFactor']
+
+# Scale the 'SeatCapacity'
+X_df = transformer.scale(X_df, ['SeatCapacity'])
 
 
 X = X_df.values
@@ -114,23 +117,23 @@ y = load_factor.values.ravel()
 
 n, p = X.shape
 
-# import im_models
+import im_models
 
-# mod_regr = im_models.PredictionModels(cv_outer=10, cv_inner=5)
+mod_regr = im_models.PredictionModels(cv_outer=10, cv_inner=5)
 # mod_regr.fit(X,y)
 
 # y_hat = mod_regr.predict(X)
 
-dataset = raw_data.loc[raw_data.LoadFactor > 0]
-training_length = int(2/3*dataset.shape[0])
-train_dataset = dataset[0:training_length]
-test_dataset = dataset[training_length:]
-y_test = test_dataset[["LoadFactor"]]
-X_test = test_dataset.drop(['LoadFactor'], axis=1)
+# dataset = raw_data.loc[raw_data.LoadFactor > 0]
+# training_length = int(2/3*dataset.shape[0])
+# train_dataset = dataset[0:training_length]
+# test_dataset = dataset[training_length:]
+# y_test = test_dataset[["LoadFactor"]]
+# X_test = test_dataset.drop(['LoadFactor'], axis=1)
 
 
-trnsf = spreproc.SamplingTransformer(sample_by='hours')
-X, _, y = trnsf.fit(train_dataset)
+#trnsf = spreproc.SamplingTransformer(sample_by='hours')
+#X, _, y = trnsf.fit(train_dataset)
 
 #X2, _, y2 = trnsf.fit(test_dataset)
 

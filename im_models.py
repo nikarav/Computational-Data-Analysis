@@ -1,6 +1,9 @@
+from matplotlib.pyplot import grid
 from sklearn.model_selection import KFold, GridSearchCV
 from sklearn.ensemble import AdaBoostRegressor, RandomForestRegressor
 import numpy as np
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import cross_val_score
 
 
 class PredictionModels():
@@ -39,3 +42,17 @@ class PredictionModels():
             y_hat = estimator.predict(X)
             y_hat_ens[i, :] = y_hat.ravel()
         return y_hat_ens.mean()
+
+
+
+class KnnNestedCV():
+    def __init__(self) -> None:
+        pass
+    
+    def grid_params():
+        return {'n_neighbors':[2,3,4,5,6,7,8,9]}
+
+    #def trainCV():
+
+
+    #def predict():

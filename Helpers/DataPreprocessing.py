@@ -1,6 +1,8 @@
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.compose import ColumnTransformer
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import StandardScaler
 
 
 class DataTransformer(BaseEstimator, TransformerMixin):
@@ -15,6 +17,18 @@ class DataTransformer(BaseEstimator, TransformerMixin):
                                                       ]
         
                                     
+    def scale(self, X, columns):
+        X_copy = X.copy()
+        val = X[columns].values
+        
+        if len(columns) == 1:
+            val = val.reshape(-1,1)
+        
+        scaler = StandardScaler().fit(val)
+        features = scaler.transform(val)
+
+        X_copy[columns] = features
+        return X_copy
 
     def fit(self, X, y=None):
         self.df = X.copy()
