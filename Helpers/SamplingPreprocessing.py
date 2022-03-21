@@ -34,7 +34,8 @@ class SamplingTransformer(BaseEstimator, TransformerMixin):
         if self.sample_by == 'days':
             df, indexes = self.__group_by_day(df)
         if self.sample_by == 'hours':
-            df, indexes = self.__group_by_hour(df)
+            #df, indexes = self.__group_by_hour(df)
+            df, indexes = self.__group_by_quarter(df)
         return df, indexes
 
     def __fix_flight_type(self, df):
@@ -55,6 +56,7 @@ class SamplingTransformer(BaseEstimator, TransformerMixin):
         df['WeekNumber'] = df['ScheduleTime'].dt.isocalendar().week
         df['Day'] = df['ScheduleTime'].dt.isocalendar().day
         df['Hour'] = df['ScheduleTime'].dt.hour
+        df['Quarter'] = self.__get_quarter(df)
         df['Holiday'] = self.__get_holidays(df)
         df.drop('ScheduleTime', axis=1, inplace=True)
         if self.sample_by == 'days':
@@ -68,6 +70,20 @@ class SamplingTransformer(BaseEstimator, TransformerMixin):
             df.drop('LoadFactor', axis=1, inplace=True)
             df.drop('SeatCapacity', axis=1, inplace=True)
         return df
+
+    def __get_quarter(self, df):
+        quarter = np.zeros(df.shape[0])
+        for i, el in enumerate(df.ScheduleTime):
+            minute = el.minute
+            if minute >= 45:
+                quarter[i] = 4
+            elif minute >= 30:
+                quarter[i] = 3
+            elif minute >= 15:
+                quarter[i] = 2
+            else:
+                quarter[i] = 1
+        return quarter
 
     def __get_holidays(self, df, easter_days_off=3, christmas_weeks_numbers=[51, 52, 53]):
         # Easter
@@ -284,6 +300,85 @@ class SamplingTransformer(BaseEstimator, TransformerMixin):
                                number_of_destinations, number_of_chartered, number_of_sectors], axis=1)
         df = pd.DataFrame(data=data, columns=[
             'Hour', 'Day', 'WeekNumber', 'Month', 'Holiday', 'Flights', 'Destinations', 'Chartered', 'Sectors'])
+        return df, indexes
+
+    def __group_by_quarter(self, df):
+        df = df.copy()
+        indexes = []
+        flag = False
+        quarters = []
+        hours = []
+        day_number = []
+        week_numbers = []
+        month_number = []
+        holiday_period = []
+        number_of_flights = []
+        number_of_destinations = []
+        number_of_chartered = []
+        number_of_sectors = []
+        if 'NumberOfPassengers' in np.asarray(df.columns):
+            flag = True
+            mean_passenger_number = []
+        years = np.array(df['Year'].unique())
+        for year in years:
+            year_df = df[df.Year == year]
+            weeks = np.array(year_df.WeekNumber.unique())
+            for week in weeks:
+                week_df = year_df[year_df.WeekNumber == week]
+                days = np.array(week_df.Day.unique())
+                for day in days:
+                    day_df = week_df[week_df.Day == day]
+                    hours_ = np.array(day_df.Hour.unique())
+                    for hour in hours_:
+                        hour_df = day_df[day_df.Hour == hour]
+                        quarters_ = np.array(hour_df.Quarter.unique())
+                        for quarter in quarters_:
+                            quarter_df = hour_df[hour_df.Quarter == quarter]
+                            indexes.append(np.asarray(quarter_df.index))
+                            quarters.append(quarter)
+                            hours.append(hour)
+                            day_number.append(day)
+                            week_numbers.append(week)
+                            a = hour_df.Month.unique()[0]
+                            month_number.append(a)
+                            a = hour_df.Holiday.value_counts().index[0]
+                            holiday_period.append(a)
+                            number_of_flights.append(
+                                len(np.asarray(quarter_df.FlightNumber.unique())))
+                            number_of_destinations.append(
+                                len(np.asarray(quarter_df.Destination.unique())))
+                            number_of_chartered.append(
+                                len(np.asarray(quarter_df[quarter_df.FlightType == 'C'])))
+                            number_of_sectors.append(
+                                len(np.asarray(quarter_df.Sector.unique())))
+                            if flag:
+                                if len(quarter_df['NumberOfPassengers'].values) > 0:
+                                    mean_no_pass = np.mean(
+                                        quarter_df['NumberOfPassengers'].values)
+                                else:
+                                    mean_no_pass = 0
+                                mean_passenger_number.append(mean_no_pass)
+        quarters = np.asarray([quarters]).T
+        hours = np.array([hours]).T
+        day_number = np.array([day_number]).T
+        week_numbers = np.array([week_numbers]).T
+        month_number = np.array([month_number]).T
+        holiday_period = np.array([holiday_period]).T
+        number_of_flights = np.array([number_of_flights]).T
+        number_of_destinations = np.array([number_of_destinations]).T
+        number_of_chartered = np.array([number_of_chartered]).T
+        number_of_sectors = np.array([number_of_sectors]).T
+        if flag:
+            mean_passenger_number = np.array([mean_passenger_number]).T
+            data = np.concatenate([quarters, hours, day_number, week_numbers, month_number, holiday_period, number_of_flights,
+                                   number_of_destinations, number_of_chartered, number_of_sectors, mean_passenger_number], axis=1)
+            df = pd.DataFrame(data=data, columns=[
+                'Quarter', 'Hour', 'Day', 'WeekNumber', 'Month', 'Holiday', 'Flights', 'Destinations', 'Chartered', 'Sectors', 'NumberOfPassengers'])
+            return df, indexes
+        data = np.concatenate([quarters, hours, day_number, week_numbers, month_number, holiday_period, number_of_flights,
+                               number_of_destinations, number_of_chartered, number_of_sectors], axis=1)
+        df = pd.DataFrame(data=data, columns=[
+            'Quarters', 'Hour', 'Day', 'WeekNumber', 'Month', 'Holiday', 'Flights', 'Destinations', 'Chartered', 'Sectors'])
         return df, indexes
 
     def from_sampled_to_schedule_format(self, estimates_vector, X_schedule_format):

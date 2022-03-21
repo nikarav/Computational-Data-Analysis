@@ -7,7 +7,7 @@ from sklearn.preprocessing import StandardScaler
 
 class DataTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, top, dummy_encode=True):
-        self.top=top
+        self.top = top
         self.dummy_encode = dummy_encode
         self.all_cat_columns_in_raw_data_hardcoded = ['Airline',
                                                       'Destination',
@@ -15,15 +15,14 @@ class DataTransformer(BaseEstimator, TransformerMixin):
                                                       'FlightType',
                                                       'Sector'
                                                       ]
-        
-                                    
+
     def scale(self, X, columns):
         X_copy = X.copy()
         val = X[columns].values
-        
+
         if len(columns) == 1:
-            val = val.reshape(-1,1)
-        
+            val = val.reshape(-1, 1)
+
         scaler = StandardScaler().fit(val)
         features = scaler.transform(val)
 
@@ -47,7 +46,7 @@ class DataTransformer(BaseEstimator, TransformerMixin):
         df = self.__prepare_datetime_data(df)
         df = self.__categorical_data_transform(df)
         # add columns (For instance add SeatCapacity)
-        #df = self.__add_Columns_To_df(X, df, columns)
+        df = self.__add_Columns_To_df(X, df, columns)
         return df
 
     def __populate_cat_attribs_array(self):
@@ -74,7 +73,6 @@ class DataTransformer(BaseEstimator, TransformerMixin):
             df['FlightType'].replace('G', 'J', inplace=True)
             # O is a charter type. Lectures
             df['FlightType'].replace('O', 'C', inplace=True)
-            # df['FlightType'] = df['FlightType'] ## WTF did I write?
             return df
 
     def __prepare_datetime_data(self, df):
@@ -87,7 +85,7 @@ class DataTransformer(BaseEstimator, TransformerMixin):
             df['Holiday'] = self.__get_holidays(df)
             df.drop('ScheduleTime', axis=1, inplace=True)
             return df
-    
+
     # 1) Gregorian calendar
     # 2) Christmas Holiday
     def __get_holidays(self, df, easter_days_off=3, christmas_weeks_numbers=[51, 52, 53]):
@@ -137,7 +135,7 @@ class DataTransformer(BaseEstimator, TransformerMixin):
                 if end_name == "other":
                     df.drop([col], axis=1, inplace=True)
         return df
-    
+
     def __add_Columns_To_df(self, X, df, columns):
         """
         Concatenate the columns of X to df.
