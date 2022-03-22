@@ -1,0 +1,2 @@
+,Best Estimator,Best Param,Accuracy
+0,Ridge(alpha=0.0),{'alpha': 0.0},0.4238796276385013

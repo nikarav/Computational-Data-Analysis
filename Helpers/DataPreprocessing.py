@@ -42,6 +42,7 @@ class DataTransformer(BaseEstimator, TransformerMixin):
     def transform(self, X, columns):
         df = X.copy()
         df = df.sort_values(by=['ScheduleTime'])
+        df = df.reset_index(drop=True)
         df = self.__fix_flight_type(df)
         df = self.__prepare_datetime_data(df)
         df = self.__categorical_data_transform(df)
@@ -78,10 +79,13 @@ class DataTransformer(BaseEstimator, TransformerMixin):
     def __prepare_datetime_data(self, df):
         df = df.copy()
         if 'ScheduleTime' in self.attributes:
-            df['Year'] = df['ScheduleTime'].dt.isocalendar().year
-            df['WeekNumber'] = df['ScheduleTime'].dt.isocalendar().week
-            df['Day'] = df['ScheduleTime'].dt.isocalendar().day
-            df['Hour'] = df['ScheduleTime'].dt.hour
+            df['ScheduleTime'] = pd.to_datetime(df['ScheduleTime'])
+            df['Year'] = df['ScheduleTime'].map(lambda x: x.year)
+            df['Month'] = df['ScheduleTime'].map(lambda x: x.month)
+            df['WeekNumber'] = df['ScheduleTime'].map(lambda x: int(x.strftime("%W")))
+            df['Day'] = df['ScheduleTime'].map(lambda x: x.day)
+            df['Hour'] = df['ScheduleTime'].map(lambda x: x.hour)
+            df['Weekday'] = df['ScheduleTime'].map(lambda x: x.weekday())
             df['Holiday'] = self.__get_holidays(df)
             df.drop('ScheduleTime', axis=1, inplace=True)
             return df
@@ -153,3 +157,16 @@ class DataTransformer(BaseEstimator, TransformerMixin):
         for column in columns:
             df = pd.concat([df, X[column]], axis=1)
         return df
+
+    def __target_encode_column_df(self, X, target, column):
+        X_copy = X.copy()
+        enc_map = dict()
+        total_target_mean = np.mean(X[target])
+        column_mean = X.groupby([column])[target].mean()
+        X[column] = X[column].map(column_mean)
+        enc_map = dict(zip(X_copy[column], X[column]))
+        return X, enc_map
+
+    def __target_encode_column_dict_df(self, X, enc_map, column):
+        X[column] = X[column].apply(lambda x: str(enc_map.get(x)))
+        return X

@@ -1,0 +1,2 @@
+,Best Estimator,Best Param,Accuracy
+0,"ElasticNet(alpha=1e-05, l1_ratio=0.01)","{'alpha': 1e-05, 'l1_ratio': 0.01}",0.4238779987453055

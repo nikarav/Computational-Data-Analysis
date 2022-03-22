@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-
+from sklearn.preprocessing import StandardScaler
 
 class DataTransformer():
     def __init__(self, top_percent, dummy_encode=True):
@@ -23,7 +23,7 @@ class DataTransformer():
 
     def transform(self, X):
         df = X.copy()
-        # df = df.sort_values(by=['ScheduleTime'])
+        #df = df.sort_values(by=['ScheduleTime'])
         df = self.__fix_flight_type(df)
         df = self.__prepare_datetime_data(df)
         df = self.__categorical_data_transform(df)
@@ -210,5 +210,18 @@ class DataTransformer():
         return X, enc_map
 
     def target_encode_column_dict_df(self, X, enc_map, column):
-        X[column] = X[column].apply(lambda x: str(enc_map.get(x)))
+        X[column] = X[column].apply(lambda x: enc_map.get(x))
         return X
+
+    def scale(self, X, columns):
+        X_copy = X.copy()
+        val = X[columns].values
+
+        val = val.reshape(-1, 1)
+
+        scaler = StandardScaler().fit(val)
+        features = scaler.transform(val)
+
+        X_copy[columns] = features
+        return X_copy
+

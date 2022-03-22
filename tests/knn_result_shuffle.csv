@@ -1,0 +1,2 @@
+,Best Estimator,Best Param,Accuracy
+0,KNeighborsRegressor(n_neighbors=2),{'n_neighbors': 2},0.5749831445027083
